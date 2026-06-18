@@ -15,7 +15,7 @@ consteval details::scan_result<Ts...> scan() {
 
     // Вспомогательная лямбда внутри функции
     constexpr auto helper = []<size_t... Is>(std::index_sequence<Is...>) {
-        return details::scan_result<Ts...>{details::parse_input<Is, fmt_str, source, Ts>()...};
+        return details::scan_result<Ts...>{details::parse_input<Is, fmt_str, source, std::remove_cv_t<Ts>>()...};
     };
 
     return helper(std::index_sequence_for<Ts...>{});

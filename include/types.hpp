@@ -1,8 +1,11 @@
 #pragma once
 
 #include <algorithm>
+#include <concepts>
+#include <iostream>
 #include <string_view>
 #include <tuple>
+#include <type_traits>
 
 namespace stdx::details {
 
@@ -47,16 +50,20 @@ struct parse_error : fixed_string<128> {
 // Шаблонный класс для хранения результатов парсинга
 template <typename... Ts>
 struct scan_result {
-    std::tuple<Ts...> results;
+    // Храним без cv-квалификаторов для поддержки constexpr
+    using StorageTypes = std::tuple<std::remove_cv_t<Ts>...>;
+    StorageTypes results;
 
-    constexpr scan_result(Ts &&...args) : results(std::forward<Ts>(args)...) {}
+    constexpr scan_result(std::remove_cv_t<Ts>... args) : results(std::move(args)...) {}
 
     template <size_t I>
     constexpr auto get() const {
-        return std::get<I>(results);
+        // Получаем тип элемента по индексу I
+        using OriginalType = std::tuple_element_t<I, std::tuple<Ts...>>;
+        return static_cast<OriginalType>(std::get<I>(results));
     }
 
-    constexpr const std::tuple<Ts...> &values() const { return results; }
+    constexpr const StorageTypes &values() const { return results; }
 };
 
 }  // namespace stdx::details

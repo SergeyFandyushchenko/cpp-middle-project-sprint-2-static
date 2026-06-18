@@ -12,12 +12,8 @@ namespace stdx::details {
 
 // Концепт для проверки поддерживаемых типов
 template <typename T>
-concept supported_type =
-    std::is_same_v<std::remove_cv_t<T>, int8_t> || std::is_same_v<std::remove_cv_t<T>, uint8_t> ||
-    std::is_same_v<std::remove_cv_t<T>, int16_t> || std::is_same_v<std::remove_cv_t<T>, uint16_t> ||
-    std::is_same_v<std::remove_cv_t<T>, int32_t> || std::is_same_v<std::remove_cv_t<T>, uint32_t> ||
-    std::is_same_v<std::remove_cv_t<T>, int64_t> || std::is_same_v<std::remove_cv_t<T>, uint64_t> ||
-    std::is_same_v<std::remove_cv_t<T>, std::string_view>;
+concept supported_type = std::is_same_v<std::remove_cv_t<T>, std::string_view> ||
+                         std::signed_integral<std::remove_cv_t<T>> || std::unsigned_integral<std::remove_cv_t<T>>;
 
 // Шаблонная функция, возвращающая пару позиций в строке с исходными данными, соответствующих I-ому плейсхолдеру
 template <int I, format_string fmt, fixed_string source>
@@ -72,24 +68,22 @@ consteval auto get_current_source_for_parsing() {
 // Функции parse_value для разных типов
 template <typename T, char spec>
 consteval std::expected<T, parse_error> parse_value(std::string_view sv) {
-    using BaseType = std::remove_cv_t<T>;
-
-    if constexpr (std::same_as<BaseType, std::string_view>) {
+    if constexpr (std::same_as<T, std::string_view>) {
         static_assert(spec == 's', "String requires 's' specifier");
         return sv;
-    } else if constexpr (std::is_signed_v<BaseType>) {
+    } else if constexpr (std::is_signed_v<T>) {
         static_assert(spec == 'd', "Signed integer requires 'd' specifier");
         T value{};
         auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), value);
-        if (ec != std::errc()) {
+        if (ec != std::errc() || ptr != sv.data() + sv.size()) {
             return std::unexpected(parse_error{"Failed to parse integer"});
         }
         return value;
-    } else if constexpr (std::is_unsigned_v<BaseType>) {
+    } else if constexpr (std::is_unsigned_v<T>) {
         static_assert(spec == 'u', "Unsigned integer requires 'u' specifier");
         T value{};
         auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), value);
-        if (ec != std::errc()) {
+        if (ec != std::errc() || ptr != sv.data() + sv.size()) {
             return std::unexpected(parse_error{"Failed to parse unsigned integer"});
         }
         return value;

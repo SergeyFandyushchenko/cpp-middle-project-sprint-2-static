@@ -48,4 +48,29 @@ static_assert(stdx::scan<"{%d}"_fs, "127", int8_t>().get<0>() == 127);
 static_assert(stdx::scan<"{%d}"_fs, "32767", int16_t>().get<0>() == 32767);
 static_assert(stdx::scan<"{%u}"_fs, "255", uint8_t>().get<0>() == 255);
 
-int main() { return 0; }
+// Тест 6: "cv-qualifiers"
+static_assert(stdx::scan<"{%d}"_fs, "127", const int8_t>().get<0>() == 127);
+static_assert(stdx::scan<"{%u}"_fs, "127", const uint8_t>().get<0>() == 127);
+static_assert(stdx::scan<"{%d}"_fs, "127", volatile int16_t>().get<0>() == 127);
+static_assert(stdx::scan<"{%u}"_fs, "127", volatile uint16_t>().get<0>() == 127);
+static_assert(stdx::scan<"{%u}"_fs, "127", const volatile uint16_t>().get<0>() == 127);
+static_assert(stdx::scan<"{%u} {%d} {%u}"_fs, "1 2 3", const uint8_t, volatile int8_t, const volatile uint8_t>()
+                  .values() == std::tuple(1, 2, 3));
+// Грехи отцов.
+// 1)
+// const и volatile не сохраняются в возвращаемом значении, однако (а в примере в main - сохраняется const) ) Нужно ли
+// справлять? static_assert(std::is_same_v<decltype(stdx::scan<"{%u}"_fs, "127", const volatile uint16_t>().get<0>()),
+// const volatile uint16_t>);
+//  2) Слитные {}{}... не работают )) Нужно переколбашивать парасеры ) Исправлять ?
+// static_assert(stdx::scan<"{%u}{%d}{%u}"_fs, "1 2 3", uint8_t, int8_t, uint8_t>().values() ==
+//               std::tuple<uint8_t, int8_t, uint8_t>(1, 2, 3));
+
+int main() {
+    constexpr const volatile uint16_t v0 = stdx::scan<"{%u}"_fs, "127", const volatile uint16_t>().get<0>();
+
+    // const сохраняется, volatile нет. Нужно ли исправлять? (Если да, то как?)
+    constexpr decltype(auto) v1 = stdx::scan<"{%u}"_fs, "127", const volatile uint16_t>().get<0>();
+    static_assert(std::is_same_v<decltype(v1), const uint16_t>);
+    // static_assert(std::is_same_v<decltype(v1), const volatile uint16_t>);
+    return 0;
+}
