@@ -65,6 +65,15 @@ static_assert(stdx::scan<"{%u} {%d} {%u}"_fs, "1 2 3", const uint8_t, volatile i
 // static_assert(stdx::scan<"{%u}{%d}{%u}"_fs, "1 2 3", uint8_t, int8_t, uint8_t>().values() ==
 //               std::tuple<uint8_t, int8_t, uint8_t>(1, 2, 3));
 
+// Тест 7: Пустой плейсхолдер с разными типами
+static_assert(stdx::scan<"{}"_fs, "42", int8_t>().get<0>() == 42);
+static_assert(stdx::scan<"{}"_fs, "42", uint8_t>().get<0>() == 42);
+static_assert(stdx::scan<"{}"_fs, "42", int>().get<0>() == 42);
+static_assert(stdx::scan<"{}"_fs, "hello", std::string_view>().get<0>() == "hello");
+static_assert(stdx::scan<"{}"_fs, "42", const int8_t>().get<0>() == 42);
+static_assert(stdx::scan<"{}"_fs, "42", volatile int8_t>().get<0>() == 42);
+static_assert(stdx::scan<"{}"_fs, "42", const volatile int8_t>().get<0>() == 42);
+
 int main() {
     constexpr const volatile uint16_t v0 = stdx::scan<"{%u}"_fs, "127", const volatile uint16_t>().get<0>();
 

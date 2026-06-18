@@ -91,8 +91,21 @@ consteval std::expected<T, parse_error> parse_value(std::string_view sv) {
     return std::unexpected(parse_error{"Unsupported type"});
 }
 
+// Вспомогательная функция для определения спецификатора по типу
+template <typename T>
+consteval char get_default_specifier() {
+    if constexpr (std::is_same_v<T, std::string_view>) {
+        return 's';
+    } else if constexpr (std::is_signed_v<T>) {
+        return 'd';
+    } else if constexpr (std::is_unsigned_v<T>) {
+        return 'u';
+    }
+    return 's';  // fallback
+}
+
 // Вспомогательная функция для получения спецификатора как constexpr
-template <int I, format_string fmt_str>
+template <int I, format_string fmt_str, typename T>
 consteval char get_specifier() {
     constexpr auto &positions = fmt_str.placeholder_positions;
     constexpr auto pos_i = positions[I];
@@ -102,7 +115,9 @@ consteval char get_specifier() {
     if constexpr (spec_pos < fmt_sv.size() && fmt_sv[spec_pos] == '%') {
         return fmt_sv[spec_pos + 1];
     }
-    return 's';
+
+    // Пустой плейсхолдер {} - определяем по типу
+    return get_default_specifier<T>();
 }
 
 // Шаблонная функция, выполняющая преобразования исходных данных в конкретный тип на основе I-го плейсхолдера
@@ -115,7 +130,7 @@ consteval auto parse_input() {
     constexpr auto substring = source_sv.substr(bounds.first, bounds.second - bounds.first);
 
     // Получаем спецификатор как constexpr значение
-    constexpr char spec = get_specifier<I, fmt_str>();
+    constexpr char spec = get_specifier<I, fmt_str, T>();
 
     // Вызываем parse_value с шаблонным спецификатором
     constexpr auto result = parse_value<T, spec>(substring);
